@@ -57,9 +57,9 @@ output.
 ## License
 
 Free to use, modify, and redistribute for any purpose (MIT-style). If it saves
-you time, consider checking out [Rustinion](https://rustinion.com) for full
-fleet-wide config compliance monitoring, or paying what you think it's worth at
-the link where you got this.
+you time, [pay what you think it's worth here](https://buy.stripe.com/dRmaEXamdbvFbXF4py1VK01) —
+or check out [Rustinion](https://rustinion.com) for full fleet-wide config
+compliance monitoring.
 
 ## Roadmap ideas (not yet built)
 - Compare against a specific CIS Benchmark level (1 vs 2) profile flag
