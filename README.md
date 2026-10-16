@@ -42,6 +42,16 @@ python3 sshd_audit.py --html report.html sshd_config
 - `X11Forwarding`, `MaxAuthTries`, `PermitUserEnvironment`, `IgnoreRhosts` (MEDIUM)
 - `ClientAliveInterval`, `LoginGraceTime`, `AllowTcpForwarding`, `UsePAM` (LOW)
 
+The config is read the way `sshd` itself reads it: `Include` drop-ins
+(e.g. `/etc/ssh/sshd_config.d/*.conf`) are expanded in place, the **first**
+value of a directive wins, settings inside `Match` blocks don't override the
+global ones, and an unset directive is judged on OpenSSH's built-in default
+(shown as `<value> (default)`). The test suite cross-checks this against the
+real `sshd -T` on every CI run.
+
+Exit codes: `0` no HIGH findings, `1` at least one HIGH finding, `2` the
+config couldn't be read or `sshd -T` couldn't run.
+
 Each finding includes the current value, the expected value, and a one-line
 rationale — so it doubles as a mini security-training doc for whoever reads the
 output.
@@ -64,4 +74,9 @@ compliance monitoring.
 ## Roadmap ideas (not yet built)
 - Compare against a specific CIS Benchmark level (1 vs 2) profile flag
 - `--fix` mode that writes a hardened config with an explained diff
-- Bundled test suite / GitHub Action for one-line CI adoption
+
+## Tests
+
+`tests/` runs every option and check end-to-end (including `--live` against a
+real OpenSSH server) on Python 3.8 and current Python in Forgejo CI:
+`sh ci/run-tests.sh 3.13` reproduces it locally (needs docker).

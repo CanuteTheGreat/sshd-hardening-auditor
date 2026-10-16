@@ -13,12 +13,21 @@ Usage:
     python3 sshd_audit.py --json          # machine-readable output
     python3 sshd_audit.py --html report.html
 
-Exit code: 0 if no HIGH-severity findings, 1 otherwise (CI-friendly).
+Exit code: 0 if no HIGH-severity findings, 1 otherwise (CI-friendly),
+2 if the config can't be read or `sshd -T` can't run.
+
+Parsing follows sshd's own rules: `Include` files are expanded in place,
+the FIRST value of a directive wins, and settings inside `Match` blocks
+don't override the global ones.
 
 Copyright (c) 2026 Errant Solutions. Licensed for use per LICENSE.txt.
 """
 import argparse
+import glob
+import html
 import json
+import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -67,7 +76,7 @@ WEAK_MACS = {"hmac-md5", "hmac-md5-96", "hmac-sha1-96", "hmac-md5-etm@openssh.co
 RULES = [
     Rule("PermitRootLogin", "no", "HIGH",
          "Root login over SSH bypasses per-user accountability and audit trails; use sudo/su after a normal-user login instead.",
-         check=lambda v: v is not None and v.strip().lower() in ("no", "prohibit-password")),
+         check=lambda v: v is not None and v.strip().lower() in ("no", "prohibit-password", "without-password", "forced-commands-only")),
     Rule("PasswordAuthentication", "no", "HIGH",
          "Password auth is brute-forceable; key-based (or hardware-token) auth should be the only path in.",
          check=_bool_false),
@@ -107,18 +116,62 @@ RULES = [
 ]
 
 
+DEFAULT_SSH_DIR = "/etc/ssh"
+
+
+def _read_with_includes(path: str, depth: int = 0, base_dir: str = DEFAULT_SSH_DIR) -> list:
+    """Return the config's lines with every `Include` directive expanded in place.
+
+    sshd expands Include (glob patterns allowed; relative paths are taken as
+    relative to /etc/ssh) before it applies "first value wins", so a drop-in
+    such as /etc/ssh/sshd_config.d/50-cloud-init.conf that sets
+    `PasswordAuthentication yes` overrides a later `PasswordAuthentication no`
+    in the main file. Auditing the main file alone would miss exactly that.
+    """
+    if depth > 16:
+        raise ValueError(f"Include nesting too deep at {path}")
+    with open(path) as f:
+        text = f.read()
+    return _expand_includes(text, depth, base_dir)
+
+
+def _expand_includes(text: str, depth: int = 0, base_dir: str = DEFAULT_SSH_DIR) -> list:
+    out = []
+    for raw in text.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        parts = line.split(None, 1)
+        if len(parts) == 2 and parts[0].lower() == "include":
+            for pattern in parts[1].split():
+                if not os.path.isabs(pattern):
+                    pattern = os.path.join(base_dir, pattern)
+                for inc in sorted(glob.glob(pattern)):
+                    out.extend(_read_with_includes(inc, depth + 1, base_dir))
+            continue
+        out.append(raw)
+    return out
+
+
 def parse_sshd_config(text: str) -> dict:
-    """Parse sshd_config text into {directive_lower: last_value} (last one wins, like sshd itself)."""
+    """Parse sshd_config text into {directive_lower: value} with sshd's own rules.
+
+    sshd_config(5): "Unless noted otherwise, for each keyword, the first
+    obtained value will be used." Directives after the first `Match` line
+    only apply to connections matching that block, so they never override
+    the global value and are not used for the global audit.
+    """
     cfg = {}
     for line in text.splitlines():
         line = line.split("#", 1)[0].strip()
         if not line:
             continue
-        parts = line.split(None, 1)
-        if len(parts) != 2:
+        # sshd accepts "Keyword value", "Keyword=value" and "Keyword = value".
+        m = re.match(r"([A-Za-z0-9]+)\s*(?:=\s*|\s+)(.*)$", line)
+        key = (m.group(1) if m else line).lower()
+        if key == "match":
+            break
+        if not m or not m.group(2).strip():
             continue
-        key, val = parts[0], parts[1].strip()
-        cfg[key.lower()] = val
+        cfg.setdefault(key, m.group(2).strip())
     return cfg
 
 
@@ -145,14 +198,39 @@ def get_kex_ciphers_macs(cfg: dict):
     return findings
 
 
+# What OpenSSH's sshd uses when a directive is not set at all (sshd_config(5),
+# OpenSSH 7.0+). An unset directive is judged on this value -- e.g. an unset
+# PermitRootLogin is "prohibit-password", which is fine, while an unset
+# MaxAuthTries is 6, which is not.
+OPENSSH_DEFAULTS = {
+    "permitrootlogin": "prohibit-password",
+    "passwordauthentication": "yes",
+    "permitemptypasswords": "no",
+    "protocol": "2",
+    "x11forwarding": "no",
+    "maxauthtries": "6",
+    "clientaliveinterval": "0",
+    "logingracetime": "120",
+    "permituserenvironment": "no",
+    "ignorerhosts": "yes",
+    "hostbasedauthentication": "no",
+    "allowtcpforwarding": "yes",
+    "usepam": "no",
+}
+
+
 def audit(cfg: dict) -> list:
     results = []
     for rule in RULES:
         val = cfg.get(rule.key.lower())
+        shown = val
+        if val is None:
+            val = OPENSSH_DEFAULTS.get(rule.key.lower())
+            shown = f"{val} (default)" if val is not None else "(default)"
         ok = rule.check(val) if rule.check else (val == rule.expected)
         results.append({
             "key": rule.key,
-            "value": val if val is not None else "(default)",
+            "value": shown,
             "expected": rule.expected,
             "severity": rule.severity,
             "pass": bool(ok),
@@ -185,8 +263,9 @@ def render_html(results: list) -> str:
         color = "#22c55e" if r["pass"] else {"HIGH": "#ef4444", "MEDIUM": "#f59e0b", "LOW": "#6b7280"}[r["severity"]]
         status = "PASS" if r["pass"] else f"FAIL ({r['severity']})"
         rows.append(
-            f'<tr><td>{r["key"]}</td><td>{r["value"]}</td><td>{r["expected"]}</td>'
-            f'<td style="color:{color};font-weight:600">{status}</td><td>{r["rationale"]}</td></tr>'
+            f'<tr><td>{html.escape(str(r["key"]))}</td><td>{html.escape(str(r["value"]))}</td>'
+            f'<td>{html.escape(str(r["expected"]))}</td>'
+            f'<td style="color:{color};font-weight:600">{status}</td><td>{html.escape(str(r["rationale"]))}</td></tr>'
         )
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <title>SSH Hardening Audit Report</title>
@@ -202,7 +281,12 @@ th{{color:#8b93a3;text-transform:uppercase;font-size:0.75rem}}
 
 
 def get_live_config() -> str:
-    out = subprocess.run(["sshd", "-T"], capture_output=True, text=True, check=True)
+    try:
+        out = subprocess.run(["sshd", "-T"], capture_output=True, text=True)
+    except FileNotFoundError:
+        raise RuntimeError("`sshd` not found on PATH -- --live needs the OpenSSH server installed (try /usr/sbin in PATH, or run as root)")
+    if out.returncode != 0:
+        raise RuntimeError(f"`sshd -T` failed (exit {out.returncode}): {out.stderr.strip() or '(no output)'} -- it usually needs root")
     return out.stdout
 
 
@@ -214,11 +298,14 @@ def main():
     ap.add_argument("--html", metavar="FILE", help="also write an HTML report to FILE")
     args = ap.parse_args()
 
-    if args.live:
-        text = get_live_config()
-    else:
-        with open(args.config) as f:
-            text = f.read()
+    try:
+        if args.live:
+            text = get_live_config()
+        else:
+            text = "\n".join(_read_with_includes(args.config))
+    except (OSError, RuntimeError, ValueError) as e:
+        print(f"sshd-audit: ERROR -- {e}", file=sys.stderr)
+        sys.exit(2)
 
     cfg = parse_sshd_config(text)
     results = audit(cfg)
