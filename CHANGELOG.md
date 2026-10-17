@@ -9,6 +9,11 @@ All notable changes. Versions are git tags; each tag has a Forgejo release with 
 - `LoginGraceTime 0` (no limit at all) and `ClientAliveCountMax 0` (never drops unresponsive clients, OpenSSH 8.2+) now fail their rules instead of passing as "<= limit".
 - Tests: accuracy suite (200 random configs whose verdicts must equal those from OpenSSH's own `sshd -T`, Mozilla's Modern guideline, Debian's stock config), mutation testing (nightly), claims ledger.
 
+## Unreleased
+
+- Time values with a trailing bare number (`1m30`, `0m45`) are read the way sshd reads them (seconds), instead
+  of failing ClientAliveInterval/LoginGraceTime as unparseable. Checked against `sshd -T`.
+
 ## 1.2.0 - 2026-10-16
 
 - **`--remote host[:port]`**: reads a running server's KEXINIT over the network (no login) and judges the

@@ -447,5 +447,54 @@ class TestFileChecks(Base):
         self.assertRegex(p.stdout, r"^sshd-hardening-auditor \d+\.\d+\.\d+$")
 
 
+class TestCoreFunctions(unittest.TestCase):
+    """Direct checks of the parsing and judging helpers every report depends on (mutation testing
+    showed these paths were only exercised end to end, where many wrong answers still passed)."""
+
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, os.path.dirname(TOOL))
+        import sshd_audit
+        cls.m = sshd_audit
+
+    def test_time_formats_follow_sshd_convtime(self):
+        cases = {"90": 90, "90s": 90, "90S": 90, "1m30s": 90, "1m30": 90, "0m45": 45, "2h": 7200, "1d": 86400,
+                 "1w": 604800, "1h1m1s": 3661, "1h1m1": 3661, " 5m ": 300, "0": 0}
+        for value, seconds in cases.items():
+            self.assertEqual(self.m._seconds(value), seconds, value)
+        for bad in ("", None, "x", "1x", "m", "1.5m", "-5", "5 m"):
+            self.assertIsNone(self.m._seconds(bad), bad)
+
+    def test_worst_severity_wins_per_directive(self):
+        res = {r["key"]: r for r in self.m.judge_algorithms({
+            "kexalgorithms": ["curve25519-sha256", "ecdh-sha2-nistp256", "diffie-hellman-group1-sha1"],
+            "hostkeyalgorithms": ["ssh-ed25519", "ssh-rsa"],
+            "ciphers": ["chacha20-poly1305@openssh.com", "aes256-gcm@openssh.com"],
+            "macs": ["hmac-sha2-256-etm@openssh.com", "hmac-sha1", "umac-64@openssh.com"]})}
+        self.assertEqual((res["kexalgorithms"]["severity"], res["kexalgorithms"]["pass"]), ("HIGH", False))
+        self.assertEqual((res["hostkeyalgorithms"]["severity"], res["hostkeyalgorithms"]["pass"]), ("MEDIUM", False))
+        self.assertEqual((res["macs"]["severity"], res["macs"]["pass"]), ("MEDIUM", False))
+        self.assertTrue(res["ciphers"]["pass"])
+        self.assertEqual(res["ciphers"]["rationale"], "Only modern cipher algorithms.")
+        self.assertIn("diffie-hellman-group1-sha1 (HIGH, 1024-bit DH group with SHA-1)", res["kexalgorithms"]["rationale"])
+        self.assertIn("ecdh-sha2-nistp256 (LOW,", res["kexalgorithms"]["rationale"])
+        self.assertIn("permitted", res["kexalgorithms"]["rationale"])
+        self.assertIn("offered", self.m.judge_algorithms({"macs": ["hmac-md5"]}, "remote")[0]["rationale"])
+        self.assertEqual(res["post-quantum-kex"]["pass"], False)
+        self.assertEqual(res["post-quantum-kex"]["value"], "(none)")
+        pq = self.m.judge_algorithms({"kexalgorithms": ["mlkem768x25519-sha256", "curve25519-sha256"]})
+        self.assertEqual([(r["key"], r["pass"], r["value"]) for r in pq],
+                         [("kexalgorithms", True, "mlkem768x25519-sha256,curve25519-sha256"),
+                          ("post-quantum-kex", True, "mlkem768x25519-sha256")])
+        self.assertEqual(self.m.judge_algorithms({}), [])
+
+    def test_gssapi_kex_prefixes_and_modifier_lists(self):
+        self.assertIsNone(self.m._alg_policy("kexalgorithms", "curve25519-sha256"))
+        lists = self.m._algorithm_lists({"ciphers": "+aes128-cbc, 3des-cbc", "macs": "-hmac-md5",
+                                         "kexalgorithms": "^sntrup761x25519-sha512@openssh.com"})
+        self.assertEqual(lists, {"ciphers": ["aes128-cbc", "3des-cbc"], "macs": [],
+                                 "kexalgorithms": ["sntrup761x25519-sha512@openssh.com"]})
+
+
 if __name__ == "__main__":
     unittest.main()

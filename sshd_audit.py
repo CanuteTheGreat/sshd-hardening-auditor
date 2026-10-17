@@ -74,8 +74,11 @@ def _int_at_most(n):
 
 def _seconds(v):
     """sshd's time format (sshd_config(5) TIME FORMATS, misc.c convtime): '90', '90s', '1m30s',
-    '2h', '1w'; None when it isn't one."""
+    '2h', '1w'; a trailing bare number counts as seconds ('1m30' = 90, as sshd -T shows);
+    None when it isn't one."""
     v = (v or "").strip().lower()
+    if not v:
+        return None
     if v.isdigit():
         return int(v)
     total, num = 0, ""
@@ -87,7 +90,7 @@ def _seconds(v):
             num = ""
         else:
             return None
-    return None if num or not v else total
+    return total + int(num) if num else total
 
 
 def _between(lo, hi, parse=int):
