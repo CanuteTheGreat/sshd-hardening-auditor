@@ -28,7 +28,7 @@ don't override the global ones.
 
 Copyright (c) 2026 Errant Solutions. MIT licensed (see LICENSE).
 """
-__version__ = "1.2.1"
+__version__ = "1.2.2"
 
 import argparse
 import glob
@@ -411,8 +411,12 @@ def ssh_kexinit(host: str, port: int = 22, timeout: float = 10) -> dict:
              "compression_c2s", "compression", "languages_c2s", "languages"]
     out, p = {"banner": banner}, 17
     for n in names:
+        if p + 4 > len(payload):
+            raise OSError("malformed KEXINIT")
         (ln,) = struct.unpack(">I", payload[p:p + 4])
         p += 4
+        if p + ln > len(payload):
+            raise OSError("malformed KEXINIT")
         out[n] = [x for x in payload[p:p + ln].decode("ascii", "replace").split(",") if x]
         p += ln
     return out

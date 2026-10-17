@@ -37,7 +37,8 @@
    "id": "terrapin",
    "text": "Terrapin",
    "tests": [
-    "tests/test_sshd_audit.py::TestRemoteScan::test_terrapin_and_pre_auth_compression"
+    "tests/test_sshd_audit.py::TestRemoteScan::test_terrapin_and_pre_auth_compression",
+    "tests/test_contract.py::TestRemoteVerdicts::test_terrapin_cbc_with_etm"
    ]
   },
   {
@@ -67,7 +68,12 @@
    "tests": [
     "tests/test_sshd_audit.py::TestRemoteScan::test_weak_server_matches_sshd_T_and_fails",
     "tests/test_sshd_audit.py::TestRemoteScan::test_hardened_server_passes",
-    "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2"
+    "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2",
+    "tests/test_contract.py::TestKexinitReader::test_identification_string_sent",
+    "tests/test_contract.py::TestKexinitReader::test_fragmented_exchange_with_pre_banner_lines",
+    "tests/test_contract.py::TestKexinitReader::test_broken_servers_are_exit_2_with_one_line_errors",
+    "tests/test_contract.py::TestRemoteVerdicts::test_lists_from_both_directions_are_judged",
+    "tests/test_contract.py::TestParseRemote::test_forms"
    ],
    "flags": [
     "--remote"
@@ -87,7 +93,8 @@
    "id": "html",
    "text": "--html report.html sshd_config",
    "tests": [
-    "tests/test_sshd_audit.py::TestOutputs::test_html_report_written_and_escaped"
+    "tests/test_sshd_audit.py::TestOutputs::test_html_report_written_and_escaped",
+    "tests/test_contract.py::TestReports::test_html"
    ],
    "flags": [
     "--html"
@@ -113,7 +120,9 @@
     "tests/test_sshd_audit.py::TestChecks::test_fail_on",
     "tests/test_sshd_audit.py::TestChecks::test_each_high_rule_fails_and_sets_exit_1",
     "tests/test_sshd_audit.py::TestOutputs::test_missing_file_is_usage_error",
-    "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2"
+    "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2",
+    "tests/test_contract.py::TestKexinitReader::test_broken_servers_are_exit_2_with_one_line_errors",
+    "tests/test_contract.py::TestRemoteVerdicts::test_compression"
    ],
    "flags": [
     "--fail-on"
@@ -123,7 +132,8 @@
    "id": "rationale",
    "text": "Each finding includes the current value, the expected value, and a one-line\nrationale",
    "tests": [
-    "tests/test_sshd_audit.py::TestOutputs::test_text_report"
+    "tests/test_sshd_audit.py::TestOutputs::test_text_report",
+    "tests/test_contract.py::TestReports::test_text"
    ]
   },
   {

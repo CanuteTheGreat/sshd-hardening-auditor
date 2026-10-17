@@ -19,7 +19,7 @@ instead — one Python file, stdlib only, works on any box with Python 3.8+.
 
 ```sh
 pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git        # latest release branch; puts `sshd-hardening-auditor` on PATH
-pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git@v1.2.1  # a pinned release
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git@v1.2.2  # a pinned release
 brew install canutethegreat/errant-tools/sshd-hardening-auditor   # after: brew tap canutethegreat/errant-tools https://git.canutethegreat.com/CanuteTheGreat/homebrew-errant-tools
 scoop install errant-tools/sshd-hardening-auditor                 # after: scoop bucket add errant-tools https://git.canutethegreat.com/CanuteTheGreat/scoop-errant-tools
 ```

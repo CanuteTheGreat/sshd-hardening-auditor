@@ -2,6 +2,13 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## 1.2.2 - 2026-10-17
+
+- `--remote`: a server whose KEXINIT is cut short or carries a name-list longer than the packet is reported as
+  `ERROR -- malformed KEXINIT` (exit 2) instead of crashing with a Python traceback (exit 1).
+- Tests: wire-contract suite for `--remote` (fragmented reads, pre-banner lines, every broken-server case,
+  both-direction lists, Terrapin CBC+EtM, compression) and exact text/HTML reports.
+
 ## 1.2.1 - 2026-10-17
 
 - `ChallengeResponseAuthentication` and `KbdInteractiveAuthentication` are one option inside sshd, so the first of either now wins (the tool always preferred KbdInteractive, disagreeing with `sshd -T` whenever ChallengeResponse came first).
