@@ -28,7 +28,7 @@ don't override the global ones.
 
 Copyright (c) 2026 Errant Solutions. MIT licensed (see LICENSE).
 """
-__version__ = "1.2.0"
+__version__ = "1.2.1"
 
 import argparse
 import glob
