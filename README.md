@@ -72,11 +72,14 @@ The config is read the way `sshd` itself reads it: `Include` drop-ins
 (e.g. `/etc/ssh/sshd_config.d/*.conf`) are expanded in place, the **first**
 value of a directive wins, settings inside `Match` blocks don't override the
 global ones, and an unset directive is judged on OpenSSH's built-in default
-(shown as `<value> (default)`). An algorithm list written with `+`/`-`/`^` is
+(shown as `<value> (default)`). Times use sshd's format (`90`, `1m30s`, `2h`), and
+`LoginGraceTime 0` / `ClientAliveCountMax 0` (which switch the limit off) fail their rules.
+One version difference: OpenSSH before 10.1 keeps the *last* of several `MaxStartups` lines;
+`--live` always shows what your sshd really uses. An algorithm list written with `+`/`-`/`^` is
 relative to OpenSSH's defaults, so only the named algorithms are judged; use
 `--live` or `--remote` to judge the full effective list. The test suite
-cross-checks file mode against the real `sshd -T`, and `--remote` against a real
-running sshd, on every CI run.
+cross-checks file mode against the real `sshd -T` (including 200 random configs in
+`tests/test_accuracy.py`), and `--remote` against a real running sshd, on every CI run.
 
 Exit codes (same convention as every Errant Solutions tool):
 

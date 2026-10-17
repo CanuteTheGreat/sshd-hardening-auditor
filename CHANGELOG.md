@@ -2,6 +2,13 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## Unreleased
+
+- `ChallengeResponseAuthentication` and `KbdInteractiveAuthentication` are one option inside sshd, so the first of either now wins (the tool always preferred KbdInteractive, disagreeing with `sshd -T` whenever ChallengeResponse came first).
+- Times are read in sshd's format (`1m`, `90s`, `1m30s`, `2h`): `LoginGraceTime 1m` used to fail and `ClientAliveInterval 0s` used to pass.
+- `LoginGraceTime 0` (no limit at all) and `ClientAliveCountMax 0` (never drops unresponsive clients, OpenSSH 8.2+) now fail their rules instead of passing as "<= limit".
+- Tests: accuracy suite (200 random configs whose verdicts must equal those from OpenSSH's own `sshd -T`, Mozilla's Modern guideline, Debian's stock config), mutation testing (nightly), claims ledger.
+
 ## 1.2.0 - 2026-10-16
 
 - **`--remote host[:port]`**: reads a running server's KEXINIT over the network (no login) and judges the

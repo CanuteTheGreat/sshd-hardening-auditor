@@ -1,0 +1,194 @@
+{
+ "offline": false,
+ "optional_imports": [],
+ "hidden_options": [],
+ "claims": [
+  {
+   "id": "authentication",
+   "text": "Authentication",
+   "tests": [
+    "tests/test_sshd_audit.py::TestChecks::test_each_high_rule_fails_and_sets_exit_1",
+    "tests/test_sshd_audit.py::TestChecks::test_medium_and_low_rules_fail_without_failing_exit_code",
+    "tests/test_sshd_audit.py::TestChecks::test_prohibit_password_and_its_old_alias_are_accepted_for_root",
+    "tests/test_accuracy.py::TestAgainstSshdT::test_random_configs_match_sshd",
+    "tests/test_accuracy.py::TestAgainstSshdT::test_debian_stock_config_reports_its_weak_defaults"
+   ]
+  },
+  {
+   "id": "cis-session",
+   "text": "CIS session limits and logging",
+   "tests": [
+    "tests/test_sshd_audit.py::TestChecks::test_cis_details",
+    "tests/test_sshd_audit.py::TestChecks::test_medium_and_low_rules_fail_without_failing_exit_code",
+    "tests/test_accuracy.py::TestAgainstSshdT::test_random_configs_match_sshd"
+   ]
+  },
+  {
+   "id": "algorithms",
+   "text": "Algorithms",
+   "tests": [
+    "tests/test_sshd_audit.py::TestChecks::test_weak_kex_cipher_mac_are_high",
+    "tests/test_sshd_audit.py::TestChecks::test_algorithm_severities_and_post_quantum",
+    "tests/test_sshd_audit.py::TestRemoteScan::test_weak_server_matches_sshd_T_and_fails",
+    "tests/test_accuracy.py::TestAgainstSshdT::test_mozilla_modern_guideline_passes_high_and_medium"
+   ]
+  },
+  {
+   "id": "terrapin",
+   "text": "Terrapin",
+   "tests": [
+    "tests/test_sshd_audit.py::TestRemoteScan::test_terrapin_and_pre_auth_compression"
+   ]
+  },
+  {
+   "id": "files",
+   "text": "Files",
+   "tests": [
+    "tests/test_sshd_audit.py::TestFileChecks::test_config_and_host_key_permissions_and_size"
+   ],
+   "flags": [
+    "--no-file-checks"
+   ]
+  },
+  {
+   "id": "live",
+   "text": "sudo sshd-hardening-auditor --live",
+   "tests": [
+    "tests/test_sshd_audit.py::TestAgainstRealSshd::test_live_mode_reads_effective_config",
+    "tests/test_sshd_audit.py::TestAgainstRealSshd::test_live_without_sshd_is_a_clean_error"
+   ],
+   "flags": [
+    "--live"
+   ]
+  },
+  {
+   "id": "remote",
+   "text": "`--remote` connects, exchanges SSH identification strings and reads the server's",
+   "tests": [
+    "tests/test_sshd_audit.py::TestRemoteScan::test_weak_server_matches_sshd_T_and_fails",
+    "tests/test_sshd_audit.py::TestRemoteScan::test_hardened_server_passes",
+    "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2"
+   ],
+   "flags": [
+    "--remote"
+   ]
+  },
+  {
+   "id": "json",
+   "text": "--remote 10.0.0.5:2222 --json",
+   "tests": [
+    "tests/test_sshd_audit.py::TestRemoteScan::test_weak_server_matches_sshd_T_and_fails"
+   ],
+   "flags": [
+    "--json"
+   ]
+  },
+  {
+   "id": "html",
+   "text": "--html report.html sshd_config",
+   "tests": [
+    "tests/test_sshd_audit.py::TestOutputs::test_html_report_written_and_escaped"
+   ],
+   "flags": [
+    "--html"
+   ]
+  },
+  {
+   "id": "parsing",
+   "text": "The config is read the way `sshd` itself reads it",
+   "tests": [
+    "tests/test_sshd_audit.py::TestChecks::test_first_value_wins_like_sshd",
+    "tests/test_sshd_audit.py::TestChecks::test_match_block_does_not_override_global",
+    "tests/test_sshd_audit.py::TestChecks::test_include_dropin_is_applied_first",
+    "tests/test_sshd_audit.py::TestChecks::test_keyword_equals_value_syntax",
+    "tests/test_sshd_audit.py::TestChecks::test_unset_directives_are_judged_on_openssh_defaults",
+    "tests/test_sshd_audit.py::TestAgainstRealSshd::test_parser_agrees_with_sshd_on_precedence",
+    "tests/test_accuracy.py::TestAgainstSshdT::test_random_configs_match_sshd"
+   ]
+  },
+  {
+   "id": "exit-codes",
+   "text": "Exit codes (same convention as every Errant Solutions tool)",
+   "tests": [
+    "tests/test_sshd_audit.py::TestChecks::test_fail_on",
+    "tests/test_sshd_audit.py::TestChecks::test_each_high_rule_fails_and_sets_exit_1",
+    "tests/test_sshd_audit.py::TestOutputs::test_missing_file_is_usage_error",
+    "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2"
+   ],
+   "flags": [
+    "--fail-on"
+   ]
+  },
+  {
+   "id": "rationale",
+   "text": "Each finding includes the current value, the expected value, and a one-line\nrationale",
+   "tests": [
+    "tests/test_sshd_audit.py::TestOutputs::test_text_report"
+   ]
+  },
+  {
+   "id": "ci-example",
+   "text": "pipx run --spec git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git",
+   "tests": [
+    "ci/install-channels.sh#pipx install -q \"git+$FORGEJO/CanuteTheGreat/$REPO.git\""
+   ]
+  },
+  {
+   "id": "stdlib-only",
+   "text": "stdlib only",
+   "tests": [
+    "tests/test_claims.py::TestClaims::test_stdlib_only"
+   ]
+  },
+  {
+   "id": "install-pipx",
+   "text": "pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git",
+   "tests": [
+    "ci/install-channels.sh#pipx install -q \"git+$FORGEJO/CanuteTheGreat/$REPO.git\"",
+    ".forgejo/workflows/nightly.yml#ci/install-channels.sh"
+   ]
+  },
+  {
+   "id": "install-homebrew",
+   "text": "brew install canutethegreat/errant-tools/sshd-hardening-auditor",
+   "tests": [
+    "repo:homebrew-errant-tools/Formula/sshd-hardening-auditor.rb#test do",
+    "repo:homebrew-errant-tools/.forgejo/workflows/test.yml#ci/run-tests.sh"
+   ]
+  },
+  {
+   "id": "install-scoop",
+   "text": "scoop install errant-tools/sshd-hardening-auditor",
+   "tests": [
+    "repo:scoop-errant-tools/bucket/sshd-hardening-auditor.json#\"bin\"",
+    "repo:scoop-errant-tools/.forgejo/workflows/test.yml#ci/run-tests.sh"
+   ]
+  },
+  {
+   "id": "install-download",
+   "text": "https://errant.solutions/downloads/sshd_audit.py",
+   "tests": [
+    "ci/install-channels.sh#https://errant.solutions/downloads/$FILE"
+   ]
+  },
+  {
+   "id": "release-assets",
+   "text": "`SHA256SUMS` file",
+   "tests": [
+    "ci/install-channels.sh#sha256sum -c SHA256SUMS",
+    "ci/release.py#SHA256SUMS"
+   ]
+  },
+  {
+   "id": "python-versions",
+   "text": "Python 3.8+",
+   "tests": [
+    ".forgejo/workflows/test.yml#python: [\"3.8",
+    ".forgejo/workflows/nightly.yml#python: [\"3.8"
+   ]
+  }
+ ],
+ "foreign_options": [
+  "--spec"
+ ]
+}

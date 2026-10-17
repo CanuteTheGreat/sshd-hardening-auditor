@@ -72,6 +72,35 @@ def _int_at_most(n):
     return f
 
 
+def _seconds(v):
+    """sshd's time format (sshd_config(5) TIME FORMATS, misc.c convtime): '90', '90s', '1m30s',
+    '2h', '1w'; None when it isn't one."""
+    v = (v or "").strip().lower()
+    if v.isdigit():
+        return int(v)
+    total, num = 0, ""
+    for ch in v:
+        if ch.isdigit():
+            num += ch
+        elif ch in "smhdw" and num:
+            total += int(num) * {"s": 1, "m": 60, "h": 3600, "d": 86400, "w": 604800}[ch]
+            num = ""
+        else:
+            return None
+    return None if num or not v else total
+
+
+def _between(lo, hi, parse=int):
+    """lo <= value <= hi (0 means 'no limit' / 'disabled' for the directives this is used on)."""
+    def f(v):
+        try:
+            n = parse(v.strip()) if v is not None else None
+        except ValueError:
+            return False
+        return n is not None and lo <= n <= hi
+    return f
+
+
 def _int_at_least(n):
     def f(v):
         try:
@@ -159,10 +188,10 @@ RULES = [
          check=_int_at_most(4)),
     Rule("ClientAliveInterval", ">0", "LOW",
          "Idle sessions should eventually be reaped to limit exposure of unattended terminals.",
-         check=lambda v: v is not None and v.strip() != "0"),
-    Rule("LoginGraceTime", "<=60", "LOW",
-         "A short grace time limits how long a half-open connection can be held.",
-         check=_int_at_most(60)),
+         check=lambda v: (_seconds(v) or 0) > 0),
+    Rule("LoginGraceTime", "1-60 seconds", "LOW",
+         "A short grace time limits how long a half-open connection can be held (0 means no limit at all).",
+         check=_between(1, 60, _seconds)),
     Rule("PermitUserEnvironment", "no", "MEDIUM",
          "User-controlled environment variables can be used to bypass restrictions in some configurations.",
          check=_bool_false),
@@ -200,9 +229,10 @@ RULES = [
     Rule("AllowUsers/AllowGroups", "an allow/deny list", "LOW",
          "CIS: restrict which accounts may log in over SSH (AllowUsers/AllowGroups/DenyUsers/DenyGroups).",
          check=lambda v: v is not None),
-    Rule("ClientAliveCountMax", "<=3", "LOW",
-         "CIS: unresponsive clients are dropped after ClientAliveInterval x ClientAliveCountMax.",
-         check=_int_at_most(3)),
+    Rule("ClientAliveCountMax", "1-3", "LOW",
+         "CIS: unresponsive clients are dropped after ClientAliveInterval x ClientAliveCountMax "
+         "(0 disables dropping them, OpenSSH 8.2+).",
+         check=_between(1, 3)),
 ]
 
 
@@ -257,6 +287,9 @@ def _expand_includes(text: str, depth: int = 0, base_dir: str = DEFAULT_SSH_DIR)
     return out
 
 
+KEYWORD_ALIASES = {"challengeresponseauthentication": "kbdinteractiveauthentication"}
+
+
 def parse_sshd_config(text: str) -> dict:
     """Parse sshd_config text into {directive_lower: value} with sshd's own rules.
 
@@ -273,6 +306,8 @@ def parse_sshd_config(text: str) -> dict:
         # sshd accepts "Keyword value", "Keyword=value" and "Keyword = value".
         m = re.match(r"([A-Za-z0-9]+)\s*(?:=\s*|\s+)(.*)$", line)
         key = (m.group(1) if m else line).lower()
+        # deprecated spellings are the same option inside sshd, so the first of EITHER wins
+        key = KEYWORD_ALIASES.get(key, key)
         if key == "match":
             break
         if not m or not m.group(2).strip():
