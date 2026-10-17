@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sshd-hardening-auditor"
+dynamic = ["version"]
+description = "Audit sshd_config, sshd -T or a live SSH server's offered algorithms against CIS/NIST SSH hardening guidance"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.8"
+authors = [{ name = "Errant Solutions", email = "hello@errant.solutions" }]
+keywords = ["ssh", "sshd", "hardening", "cis", "security", "audit"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://errant.solutions/tools/sshd-hardening-auditor.html"
+Source = "https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor"
+Changelog = "https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor/src/branch/main/CHANGELOG.md"
+Releases = "https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor/releases"
+
+[project.scripts]
+sshd-hardening-auditor = "sshd_audit:main"
+
+[tool.hatch.version]
+path = "sshd_audit.py"
+
+[tool.hatch.build.targets.wheel]
+only-include = ["sshd_audit.py"]
+
+[tool.hatch.build.targets.sdist]
+only-include = ["sshd_audit.py", "README.md", "LICENSE", "CHANGELOG.md", "tests"]
