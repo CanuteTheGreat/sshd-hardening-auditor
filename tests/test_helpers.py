@@ -133,6 +133,15 @@ class TestIncludes(unittest.TestCase):
             sa._read_with_includes(self.w("x.conf", "X\n"), 17, self.d)
         self.assertEqual(sa._read_with_includes(self.w("y.conf", "Y\n"), 16, self.d), ["Y"])
 
+    def test_default_depth_starts_at_zero(self):
+        # _expand_includes(text, base_dir=...) with its default depth: the first include is read at
+        # depth 1, so a chain of 16 files (f0..f15, f15 at depth 16) is fine and 17 files are too deep
+        self.chain(15)
+        self.assertEqual(sa._expand_includes("Include f0.conf\n", base_dir=self.d), ["L%d" % k for k in range(16)])
+        self.chain(16)
+        with self.assertRaises(ValueError):
+            sa._expand_includes("Include f0.conf\n", base_dir=self.d)
+
     def test_self_include_is_an_error(self):
         path = self.w("loop.conf", "Include loop.conf\n")
         with self.assertRaises(ValueError):
@@ -151,6 +160,17 @@ class TestRsaBits(unittest.TestCase):
         self.assertEqual(sa._rsa_bits_from_pub(self.blob(b"ssh-rsa", e, b"\x00" + n2048.to_bytes(256, "big"))), 2048)
         self.assertEqual(sa._rsa_bits_from_pub(self.blob(b"ssh-rsa", e, n4096.to_bytes(512, "big"))), 4096)
         self.assertEqual(sa._rsa_bits_from_pub(self.blob(b"ssh-rsa", e, b"\x01\x00")), 9)
+
+    def test_only_the_first_three_fields_are_read_and_lengths_are_unsigned(self):
+        n = (1 << 1023) | 5
+        mod = n.to_bytes(128, "big")
+        raw = lambda *fs: base64.b64encode(b"".join(fs)).decode()  # noqa: E731
+        head = struct.pack(">I", 7) + b"ssh-rsa" + struct.pack(">I", 1) + b"\x03"
+        # anything after the modulus is never parsed (a trailing stub is not a 4th field) nor included
+        self.assertEqual(sa._rsa_bits_from_pub(raw(head, struct.pack(">I", 128), mod, b"\xff")), 1024)
+        self.assertEqual(sa._rsa_bits_from_pub(raw(head, struct.pack(">I", 128), mod, struct.pack(">I", 2), b"\xff")), 1024)
+        # a length with the top bit set is a huge unsigned length (clamped by the blob), not negative
+        self.assertEqual(sa._rsa_bits_from_pub(raw(head, struct.pack(">I", 0x80000000), mod)), 1024)
 
     def test_truncated_key_is_an_index_error(self):
         with self.assertRaises(IndexError):
