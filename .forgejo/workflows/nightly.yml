@@ -49,6 +49,18 @@ jobs:
       - name: Mutation testing (mutmut, capped container)
         if: env.MUT_MODE != 'skip'
         run: sh ci/mutation.sh 3.13
+      - name: Publish mutation baseline (shared store branch)
+        # the gate runs inside mutation.sh's sibling container, which has no GITHUB_ACTIONS, so its own
+        # store_push is a no-op; without this the store kept the 13d10fb baseline (0 survivors) and every
+        # incremental run re-flagged the known equivalent mutants as NEW (runs 59/60, 2026-11-09)
+        if: success() && env.MUT_MODE != 'skip'
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          sp = importlib.util.spec_from_file_location("mi", "ci/mutation-incremental.py")
+          mi = importlib.util.module_from_spec(sp); sp.loader.exec_module(mi)
+          mi.store_push("sshd-hardening-auditor")
+          PY
 
   python-matrix:
     # colo-light: a short test run in ci/run-tests.sh's own 1g container, like test.yml; colo-x86_64's
