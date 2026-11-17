@@ -196,6 +196,31 @@
     ".forgejo/workflows/test.yml#python: [\"3.8",
     ".forgejo/workflows/nightly.yml#python: [\"3.8"
    ]
+  },
+  {
+   "id": "profile",
+   "text": "`--profile l1|l2` picks the CIS profile.",
+   "flags": [
+    "--profile"
+   ],
+   "tests": [
+    "tests/test_profiles_fix.py::TestProfiles::test_l1_drops_exactly_the_level_2_rules",
+    "tests/test_profiles_fix.py::TestProfiles::test_cli_profile_l1_hides_level_2_findings",
+    "tests/test_profiles_fix.py::TestProfiles::test_algorithms_stay_in_level_1"
+   ]
+  },
+  {
+   "id": "fix",
+   "text": "`--fix FILE` writes an `sshd_config` drop-in",
+   "flags": [
+    "--fix"
+   ],
+   "tests": [
+    "tests/test_profiles_fix.py::TestFix::test_snippet_sets_failing_directives",
+    "tests/test_profiles_fix.py::TestFix::test_applying_the_snippet_fixes_the_config",
+    "tests/test_profiles_fix.py::TestFix::test_cli_fix_writes_file_and_never_touches_config",
+    "tests/test_profiles_fix.py::TestFix::test_cli_fix_stdout_and_json_keeps_stdout_clean"
+   ]
   }
  ],
  "foreign_options": [

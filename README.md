@@ -19,7 +19,7 @@ instead — one Python file, stdlib only, works on any box with Python 3.8+.
 
 ```sh
 pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git        # latest release branch; puts `sshd-hardening-auditor` on PATH
-pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git@v1.2.2  # a pinned release
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git@v1.3.0  # a pinned release
 brew install canutethegreat/errant-tools/sshd-hardening-auditor   # after: brew tap canutethegreat/errant-tools https://git.canutethegreat.com/CanuteTheGreat/homebrew-errant-tools
 scoop install errant-tools/sshd-hardening-auditor                 # after: scoop bucket add errant-tools https://git.canutethegreat.com/CanuteTheGreat/scoop-errant-tools
 ```
@@ -39,12 +39,24 @@ sshd-hardening-auditor --remote host.example.com # what a running server offers 
 sshd-hardening-auditor --remote 10.0.0.5:2222 --json
 sshd-hardening-auditor --fail-on medium sshd_config   # CI gate: exit 1 on MEDIUM or worse
 sshd-hardening-auditor --html report.html sshd_config
+sshd-hardening-auditor --profile l1 sshd_config       # CIS Level 1 rules only
+sshd-hardening-auditor --fix fix.conf sshd_config     # write a drop-in that fixes the findings
 ```
 
 `--remote` connects, exchanges SSH identification strings and reads the server's
 `KEXINIT` (the algorithm lists it offers). It never logs in or sends credentials,
 so it works on any server you're allowed to connect to, including appliances
 where you can't run `sshd -T`.
+
+`--profile l1|l2` picks the CIS profile. `l2` (the default) runs every rule; `l1` leaves out the
+three that CIS files under Level 2: `X11Forwarding`, `AllowTcpForwarding` and `GSSAPIAuthentication`
+(the benchmarks differ a little between distributions; this follows the common Linux ones).
+Algorithm, host key and file permission checks are in both profiles.
+
+`--fix FILE` writes an `sshd_config` drop-in (`-` = stdout) that sets every failing directive to
+the recommended value. It never edits your config: review it, put it where its `Include` line comes
+before the conflicting directives (sshd keeps the first value), run `sshd -t`, keep a second session open, then reload.
+`AllowUsers`/`AllowGroups` and weak algorithms need your decision, so they come out as comments.
 
 ## What it checks
 

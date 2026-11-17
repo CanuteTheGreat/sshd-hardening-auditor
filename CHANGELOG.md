@@ -2,6 +2,13 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## 1.3.0 - 2026-11-17
+
+- `--profile l1|l2`: CIS Level 1 only, or every rule (default, unchanged). Level 2 rules: `X11Forwarding`,
+  `AllowTcpForwarding`, `GSSAPIAuthentication`.
+- `--fix FILE`: writes an sshd_config drop-in that sets each failing directive to the recommended value
+  (`-` = stdout; stderr with `--json`). Never edits the config; `AllowUsers`/`AllowGroups` and weak algorithms are left as comments.
+
 ## 1.2.2 - 2026-10-17
 
 - `--remote`: a server whose KEXINIT is cut short or carries a name-list longer than the packet is reported as
