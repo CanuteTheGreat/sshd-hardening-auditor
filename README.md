@@ -27,6 +27,7 @@ scoop install errant-tools/sshd-hardening-auditor                 # after: scoop
 Or download the single file (stdlib-only Python 3.8+) and run it directly:
 `curl -fsSLO https://errant.solutions/downloads/sshd_audit.py && python3 sshd_audit.py --help`.
 Every [release](https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor/releases) has a changelog, the wheel, the sdist and a `SHA256SUMS` file.
+The checksums are signed (`SHA256SUMS.asc`). Verify: `gpg --verify SHA256SUMS.asc SHA256SUMS` (key: https://errant.solutions/signing-key.asc, fingerprint `5439 3549 39B9 C055 2A68  E9BB E323 A6A3 AC0A 6506`, also in `keys/release-signing.asc`).
 Not on PyPI yet, so plain `pipx install sshd-hardening-auditor` doesn't work until it's published there.
 
 ## Usage
