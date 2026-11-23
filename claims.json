@@ -83,7 +83,8 @@
    "id": "json",
    "text": "--remote 10.0.0.5:2222 --json",
    "tests": [
-    "tests/test_sshd_audit.py::TestRemoteScan::test_weak_server_matches_sshd_T_and_fails"
+    "tests/test_sshd_audit.py::TestRemoteScan::test_weak_server_matches_sshd_T_and_fails",
+    "tests/test_cli_contract.py::TestCliContract::test_json_validates_clean_and_findings"
    ],
    "flags": [
     "--json"
@@ -122,7 +123,9 @@
     "tests/test_sshd_audit.py::TestOutputs::test_missing_file_is_usage_error",
     "tests/test_sshd_audit.py::TestRemoteScan::test_unreachable_is_exit_2",
     "tests/test_contract.py::TestKexinitReader::test_broken_servers_are_exit_2_with_one_line_errors",
-    "tests/test_contract.py::TestRemoteVerdicts::test_compression"
+    "tests/test_contract.py::TestRemoteVerdicts::test_compression",
+    "tests/test_cli_contract.py::TestCliContract::test_exit_codes_clean_findings_usage_runtime",
+    "tests/test_cli_contract.py::TestCliContract::test_unexpected_exception_is_exit_3"
    ],
    "flags": [
     "--fail-on"
@@ -220,6 +223,25 @@
     "tests/test_profiles_fix.py::TestFix::test_applying_the_snippet_fixes_the_config",
     "tests/test_profiles_fix.py::TestFix::test_cli_fix_writes_file_and_never_touches_config",
     "tests/test_profiles_fix.py::TestFix::test_cli_fix_stdout_and_json_keeps_stdout_clean"
+   ]
+  },
+  {
+   "id": "contract-json",
+   "text": "`--json` prints exactly one object",
+   "tests": [
+    "tests/test_cli_contract.py::TestCliContract::test_json_validates_clean_and_findings",
+    "tests/test_cli_contract.py::TestCliContract::test_json_is_one_document_and_errors_go_to_stderr"
+   ],
+   "flags": []
+  },
+  {
+   "id": "contract-quiet",
+   "text": "`--quiet` / `-q` prints nothing to stdout",
+   "tests": [
+    "tests/test_cli_contract.py::TestCliContract::test_quiet_prints_nothing_but_keeps_exit_code_and_files"
+   ],
+   "flags": [
+    "--quiet"
    ]
   }
  ],

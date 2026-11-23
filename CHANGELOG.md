@@ -2,6 +2,19 @@
 
 All notable changes. Versions are git tags; each tag has a Forgejo release with checksums.
 
+## 2.0.0 - 2026-11-23
+
+- Shared CLI contract (docs/CLI-CONTRACT.md): exit 0 clean, 1 findings, 2 usage/input error, 3 unexpected internal
+  error (an uncaught exception is now exit 3 with a message on stderr instead of a traceback). Unreadable config,
+  `sshd -T` failure and unreachable `--remote` server stay exit 2 (legacy, documented).
+- `--quiet` / `-q`: nothing on stdout; exit code, stderr errors and `--html` / `--fix FILE` output remain.
+- JSON schema file `schema/sshd-hardening-auditor.schema.json`, checked by the new contract tests.
+
+### Changed (breaking)
+
+- `--json` now prints one object `{"schema_version": 1, "tool", "version", "exit_code", "results": [...]}`
+  instead of a bare list; the old list is the `results` value, unchanged. Scripts that read the list must read `results`.
+
 ## 1.3.0 - 2026-11-17
 
 - `--profile l1|l2`: CIS Level 1 only, or every rule (default, unchanged). Level 2 rules: `X11Forwarding`,

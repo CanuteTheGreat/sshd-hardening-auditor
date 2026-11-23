@@ -74,7 +74,7 @@ def verdicts(path):
     p = subprocess.run([sys.executable, TOOL, "--json", "--no-file-checks", path], stdout=subprocess.PIPE,
                        stderr=subprocess.PIPE, universal_newlines=True)
     assert p.returncode in (0, 1), p.stderr
-    return {r["key"]: r["pass"] for r in json.loads(p.stdout) if r["key"] in RULE_KEYS}
+    return {r["key"]: r["pass"] for r in json.loads(p.stdout)["results"] if r["key"] in RULE_KEYS}
 
 
 class TestAgainstSshdT(unittest.TestCase):
@@ -127,7 +127,7 @@ class TestAgainstSshdT(unittest.TestCase):
             "KbdInteractiveAuthentication no\nMaxAuthTries 3\nUsePrivilegeSeparation sandbox\n"))
         p = subprocess.run([sys.executable, TOOL, "--json", "--no-file-checks", path], stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, universal_newlines=True)
-        bad = [(r["key"], r["severity"]) for r in json.loads(p.stdout)
+        bad = [(r["key"], r["severity"]) for r in json.loads(p.stdout)["results"]
                if not r["pass"] and r["severity"] in ("HIGH", "MEDIUM")]
         self.assertEqual(bad, [])
         self.assertEqual(p.returncode, 0)
@@ -139,7 +139,7 @@ class TestAgainstSshdT(unittest.TestCase):
             "X11Forwarding yes\nPrintMotd no\nAcceptEnv LANG LC_*\nSubsystem\tsftp\t/usr/lib/openssh/sftp-server\n"))
         p = subprocess.run([sys.executable, TOOL, "--json", "--no-file-checks", path], stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE, universal_newlines=True)
-        failing = {r["key"] for r in json.loads(p.stdout) if not r["pass"]}
+        failing = {r["key"] for r in json.loads(p.stdout)["results"] if not r["pass"]}
         for key in ("PasswordAuthentication", "X11Forwarding", "MaxAuthTries"):
             self.assertIn(key, failing)
         for key in ("PermitRootLogin", "PermitEmptyPasswords", "KbdInteractiveAuthentication", "UsePAM"):

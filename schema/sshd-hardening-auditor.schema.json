@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "sshd-hardening-auditor --json output",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "tool",
+    "version",
+    "exit_code",
+    "results"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "tool": {
+      "type": "string",
+      "const": "sshd-hardening-auditor"
+    },
+    "version": {
+      "type": "string"
+    },
+    "exit_code": {
+      "type": "integer",
+      "enum": [
+        0,
+        1
+      ]
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "value",
+          "expected",
+          "severity",
+          "pass",
+          "rationale"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "pass": {
+            "type": "boolean"
+          },
+          "rationale": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

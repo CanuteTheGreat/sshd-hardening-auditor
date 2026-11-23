@@ -72,7 +72,7 @@ class Base(unittest.TestCase):
     def audit_json(self, text, *extra):
         p = run("--json", "--no-file-checks", *extra, self.cfg(text))
         self.assertIn(p.returncode, (0, 1), p.stderr)
-        return p.returncode, {r["key"]: r for r in json.loads(p.stdout)}
+        return p.returncode, {r["key"]: r for r in json.loads(p.stdout)["results"]}
 
     def with_override(self, key, value):
         lines = [l for l in HARDENED.splitlines() if not l.startswith(key + " ")]
@@ -269,8 +269,8 @@ class TestAgainstRealSshd(Base):
             with self.subTest(text=text):
                 path = self.cfg(text, "case.conf")
                 live = {r["key"]: r["pass"] for r in json.loads(run("--json", "--no-file-checks",
-                                                                        self.cfg(self.sshd_T(path), "T.out")).stdout)}
-                ours = {r["key"]: r["pass"] for r in json.loads(run("--json", "--no-file-checks", path).stdout)
+                                                                        self.cfg(self.sshd_T(path), "T.out")).stdout)["results"]}
+                ours = {r["key"]: r["pass"] for r in json.loads(run("--json", "--no-file-checks", path).stdout)["results"]
                         if r["key"] in RULE_KEYS}
                 self.assertEqual(len(ours), N_RULES)
                 for key in ours:
@@ -283,7 +283,7 @@ class TestAgainstRealSshd(Base):
             f.write(HARDENED.replace("Protocol 2\n", ""))
         p = run("--live", "--json")
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
-        res = {r["key"]: r for r in json.loads(p.stdout)}
+        res = {r["key"]: r for r in json.loads(p.stdout)["results"]}
         self.assertEqual(res["PermitRootLogin"]["value"], "no")
         self.assertEqual(res["MaxAuthTries"]["value"], "3")
         with open("/etc/ssh/sshd_config", "w") as f:
@@ -336,7 +336,7 @@ class TestRemoteScan(Base):
     def remote(self, port, *extra):
         p = run("--remote", "127.0.0.1:%d" % port, "--json", *extra)
         self.assertIn(p.returncode, (0, 1), p.stderr)
-        return p.returncode, {r["key"]: r for r in json.loads(p.stdout)}
+        return p.returncode, {r["key"]: r for r in json.loads(p.stdout)["results"]}
 
     def test_weak_server_matches_sshd_T_and_fails(self):
         port, cfg = self.start_sshd("KexAlgorithms diffie-hellman-group14-sha1,curve25519-sha256\n"
@@ -426,7 +426,7 @@ class TestFileChecks(Base):
         path = self.cfg(HARDENED + "HostKey %s\nHostKey %s\n" % (weak, good))
         os.chmod(path, 0o644)
         p = run("--json", path)
-        res = {r["key"]: r for r in json.loads(p.stdout)}
+        res = {r["key"]: r for r in json.loads(p.stdout)["results"]}
         self.assertEqual(p.returncode, 1)  # RSA 1024 host key is HIGH
         self.assertEqual(res["hostkey:" + weak]["value"], "RSA 1024")
         self.assertEqual(res["hostkey:" + weak]["severity"], "HIGH")
@@ -437,10 +437,10 @@ class TestFileChecks(Base):
         self.assertFalse(res["perms:" + path]["pass"])
         self.assertEqual(res["perms:" + path]["severity"], "LOW")
         os.chmod(path, 0o600)
-        res = {r["key"]: r for r in json.loads(run("--json", path).stdout)}
+        res = {r["key"]: r for r in json.loads(run("--json", path).stdout)["results"]}
         self.assertTrue(res["perms:" + path]["pass"])
         p = run("--json", "--no-file-checks", path)
-        self.assertFalse(any(r["key"].startswith(("perms:", "hostkey:")) for r in json.loads(p.stdout)))
+        self.assertFalse(any(r["key"].startswith(("perms:", "hostkey:")) for r in json.loads(p.stdout)["results"]))
 
     def test_version(self):
         p = run("--version")

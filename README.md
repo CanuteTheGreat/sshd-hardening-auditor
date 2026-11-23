@@ -19,7 +19,7 @@ instead — one Python file, stdlib only, works on any box with Python 3.8+.
 
 ```sh
 pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git        # latest release branch; puts `sshd-hardening-auditor` on PATH
-pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git@v1.3.0  # a pinned release
+pipx install git+https://git.canutethegreat.com/CanuteTheGreat/sshd-hardening-auditor.git@v2.0.0  # a pinned release
 brew install canutethegreat/errant-tools/sshd-hardening-auditor   # after: brew tap canutethegreat/errant-tools https://git.canutethegreat.com/CanuteTheGreat/homebrew-errant-tools
 scoop install errant-tools/sshd-hardening-auditor                 # after: scoop bucket add errant-tools https://git.canutethegreat.com/CanuteTheGreat/scoop-errant-tools
 ```
@@ -99,12 +99,25 @@ Exit codes (same convention as every Errant Solutions tool):
 | Code | Meaning |
 |---|---|
 | 0 | no failed check at or above `--fail-on` (default `high`) |
-| 1 | at least one |
-| 2 | the config couldn't be read, `sshd -T` couldn't run, or the remote server couldn't be reached |
+| 1 | at least one failed check at or above `--fail-on` |
+| 2 | usage or input error: bad arguments, the config couldn't be read, `sshd -T` couldn't run, or the remote server couldn't be reached (legacy: these cases were always 2 and stay 2) |
+| 3 | an unexpected internal error (message on stderr, never a traceback) |
 
 Each finding includes the current value, the expected value, and a one-line
 rationale — so it doubles as a mini security-training doc for whoever reads the
 output.
+
+## Exit codes and JSON output
+
+The tool follows the shared Errant Solutions CLI contract ([docs/CLI-CONTRACT.md](docs/CLI-CONTRACT.md)).
+`--json` prints exactly one object: `schema_version` (1), `tool`, `version`, `exit_code` and `results`
+(the list of checks, each with `key`, `value`, `expected`, `severity`, `pass`, `rationale`).
+The JSON Schema is [schema/sshd-hardening-auditor.schema.json](schema/sshd-hardening-auditor.schema.json).
+`--quiet` / `-q` prints nothing to stdout (no report, no JSON, no `--fix -` snippet); the exit code,
+errors on stderr and files from `--html` and `--fix FILE` remain. Errors always go to stderr.
+
+Example: `sshd-hardening-auditor --json --no-file-checks sshd_config` prints
+`{"schema_version": 1, "tool": "sshd-hardening-auditor", "version": "2.0.0", "exit_code": 1, "results": [...]}`.
 
 ## CI integration example
 

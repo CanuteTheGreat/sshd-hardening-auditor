@@ -141,7 +141,7 @@ class TestRemoteVerdicts(Base):
         srv = self.serve(b"SSH-2.0-Fake_2\r\n", pkt)
         p = run("--remote", "127.0.0.1:%d" % srv.port, "--json", *extra)
         self.assertIn(p.returncode, (0, 1), p.stderr)
-        return p.returncode, {r["key"]: r for r in json.loads(p.stdout)}
+        return p.returncode, {r["key"]: r for r in json.loads(p.stdout)["results"]}
 
     def test_lists_from_both_directions_are_judged(self):
         code, res = self.remote(kexinit(c2s=["aes256-gcm@openssh.com", "aes128-ctr"],

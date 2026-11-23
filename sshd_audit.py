@@ -20,9 +20,12 @@ Usage:
     sshd-hardening-auditor --json              # machine-readable output
     sshd-hardening-auditor --html report.html
 
-Exit code: 0 if no finding at or above --fail-on (default: high), 1 otherwise
-(CI-friendly), 2 if the config can't be read, `sshd -T` can't run or the
-remote server can't be reached.
+Exit codes: 0 if no finding at or above --fail-on (default: high), 1 otherwise
+(CI-friendly), 2 if arguments are bad, the config can't be read, `sshd -T`
+can't run or the remote server can't be reached (legacy: these were always 2),
+3 on an unexpected internal error.
+--json prints one object (schema_version, tool, version, exit_code, results);
+--quiet/-q prints nothing to stdout. See docs/CLI-CONTRACT.md.
 
 Parsing follows sshd's own rules: `Include` files are expanded in place,
 the FIRST value of a directive wins, and settings inside `Match` blocks
@@ -30,7 +33,7 @@ don't override the global ones.
 
 Copyright (c) 2026 Errant Solutions. MIT licensed (see LICENSE).
 """
-__version__ = "1.3.0"
+__version__ = "2.0.0"
 
 import argparse
 import glob
@@ -697,9 +700,24 @@ def parse_remote(spec):
     return spec, 22
 
 
+SCHEMA_VERSION = 1
+TOOL = "sshd-hardening-auditor"
+EPILOG = ("exit codes: 0 clean, 1 findings at or above --fail-on, 2 usage/input error, unreadable config, "
+          "`sshd -T` failure or unreachable --remote server (legacy), 3 unexpected internal error")
+
+
 def main(argv=None):
+    """Run the CLI; an unexpected exception is exit 3 with a message on stderr, never a traceback."""
+    try:
+        return _main(argv)
+    except Exception as e:  # noqa: BLE001 - contract: never exit 1 (findings) from a crash
+        print(f"{TOOL}: ERROR -- unexpected {type(e).__name__}: {e}", file=sys.stderr)
+        return 3
+
+
+def _main(argv=None):
     ap = argparse.ArgumentParser(prog="sshd-hardening-auditor", description=__doc__,
-                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+                                 formatter_class=argparse.RawDescriptionHelpFormatter, epilog=EPILOG)
     ap.add_argument("--version", action="version", version="%(prog)s " + __version__)
     ap.add_argument("config", nargs="?", default="/etc/ssh/sshd_config", help="path to sshd_config")
     ap.add_argument("--live", action="store_true", help="run `sshd -T` instead of reading a file")
@@ -709,6 +727,8 @@ def main(argv=None):
     ap.add_argument("--no-file-checks", action="store_true",
                     help="skip sshd_config/host key permission and host key size checks")
     ap.add_argument("--json", action="store_true", help="output JSON instead of text")
+    ap.add_argument("--quiet", "-q", action="store_true",
+                    help="print nothing to stdout (no report, no JSON); the exit code and stderr errors remain")
     ap.add_argument("--html", metavar="FILE", help="also write an HTML report to FILE")
     ap.add_argument("--profile", choices=list(PROFILES), default="l2",
                     help="CIS profile: l1 = Level 1 rules only (X11Forwarding, AllowTcpForwarding and "
@@ -736,43 +756,48 @@ def main(argv=None):
             results = audit(cfg, args.profile)
             if not args.no_file_checks:
                 results.extend(audit_files(path, cfg))
-    except ValueError as e:
-        print(f"sshd-hardening-auditor: ERROR -- {e}", file=sys.stderr)
-        return 2
-    except (OSError, RuntimeError) as e:
-        print(f"sshd-hardening-auditor: ERROR -- {e}", file=sys.stderr)
-        return 2
+    except (ValueError, OSError, RuntimeError) as e:
+        print(f"{TOOL}: ERROR -- {e}", file=sys.stderr)
+        return 2  # legacy: unreadable config, `sshd -T` failure and unreachable server were always 2
 
     if args.html:
-        with open(args.html, "w") as f:
-            f.write(render_html(results))
+        try:
+            with open(args.html, "w") as f:
+                f.write(render_html(results))
+        except OSError as e:
+            print(f"{TOOL}: ERROR -- {e}", file=sys.stderr)
+            return 2
+
+    snippet = fix_snippet(results) if args.fix else None
+    if args.fix and args.fix != "-":
+        try:
+            with open(args.fix, "w") as f:
+                f.write(snippet)
+        except OSError as e:
+            print(f"{TOOL}: ERROR -- {e}", file=sys.stderr)
+            return 2
+
+    if args.fail_on == "never":
+        code = 0
+    else:
+        gate = SEVERITY_ORDER[args.fail_on.upper()]
+        code = 1 if any(not r["pass"] and SEVERITY_ORDER[r["severity"]] <= gate for r in results) else 0
 
     if args.json:
-        print(json.dumps(results, indent=2))
-    else:
+        if not args.quiet:
+            print(json.dumps({"schema_version": SCHEMA_VERSION, "tool": TOOL, "version": __version__,
+                              "exit_code": code, "results": results}, indent=2))
+    elif not args.quiet:
         if banner:
             print(f"Server: {banner}  ({args.remote})\n")
         print(render_text(results))
 
-    if args.fix:
-        snippet = fix_snippet(results)
-        if args.fix == "-":
-            if args.json:
-                print(snippet, end="", file=sys.stderr)
-            else:
-                print("\n" + snippet, end="")
-        else:
-            try:
-                with open(args.fix, "w") as f:
-                    f.write(snippet)
-            except OSError as e:
-                print(f"sshd-hardening-auditor: ERROR -- {e}", file=sys.stderr)
-                return 2
-
-    if args.fail_on == "never":
-        return 0
-    gate = SEVERITY_ORDER[args.fail_on.upper()]
-    return 1 if any(not r["pass"] and SEVERITY_ORDER[r["severity"]] <= gate for r in results) else 0
+    if args.fix == "-":
+        if args.json:
+            print(snippet, end="", file=sys.stderr)
+        elif not args.quiet:
+            print("\n" + snippet, end="")
+    return code
 
 
 if __name__ == "__main__":
