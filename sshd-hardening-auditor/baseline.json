@@ -1,6 +1,6 @@
 {
  "id": "sshd-hardening-auditor",
- "last_full": "2026-11-24",
+ "last_full": "2026-11-27",
  "sha": "31d7270de3e3b757d2972127c4c552921c5043f4",
  "survivors": [
   "sshd_audit.x__algorithm_lists__mutmut_16",
@@ -54,9 +54,8 @@
   "sshd_audit.x_get_kex_ciphers_macs__mutmut_7",
   "sshd_audit.x_get_kex_ciphers_macs__mutmut_8",
   "sshd_audit.x_get_kex_ciphers_macs__mutmut_9",
-  "sshd_audit.x_get_live_config__mutmut_15",
+  "sshd_audit.x_get_live_config__mutmut_14",
   "sshd_audit.x_get_live_config__mutmut_16",
-  "sshd_audit.x_get_live_config__mutmut_17",
   "sshd_audit.x_judge_algorithms__mutmut_1",
   "sshd_audit.x_judge_algorithms__mutmut_11",
   "sshd_audit.x_judge_algorithms__mutmut_110",
